@@ -1,0 +1,26 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.board {
+  height: 424px;
+  width: 424px;
+  border: 2px solid black;
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.field {
+  height: 140px;
+  width: 140px;
+  border: 1px solid black;
+}
