@@ -9,16 +9,34 @@
     <script src="script.js" defer></script>
   </head>
   <body>
-    <div class="board">
-      <div class="field" data-field="0"></div>
-      <div class="field" data-field="1"></div>
-      <div class="field" data-field="2"></div>
-      <div class="field" data-field="3"></div>
-      <div class="field" data-field="4"></div>
-      <div class="field" data-field="5"></div>
-      <div class="field" data-field="6"></div>
-      <div class="field" data-field="7"></div>
-      <div class="field" data-field="8"></div>
+    <div class="header">
+      <h1>Tic-Tac-Toe</h1>
     </div>
+    <div class="inputForm">
+      <input type="text" placeholder="Player One" id="playerOne" />
+      <input type="text" placeholder="Player Two" id="playerTwo" />
+      <span>or</span>
+      <button id="modeSwitch">Play against Computer</button>
+    </div>
+    <button type="submit" id="playButton">Play!</button>
+    <div class="content">
+      <div class="info" id="playerOneDiv"></div>
+      <div class="board">
+        <div class="field" data-field="0"></div>
+        <div class="field" data-field="1"></div>
+        <div class="field" data-field="2"></div>
+        <div class="field" data-field="3"></div>
+        <div class="field" data-field="4"></div>
+        <div class="field" data-field="5"></div>
+        <div class="field" data-field="6"></div>
+        <div class="field" data-field="7"></div>
+        <div class="field" data-field="8"></div>
+      </div>
+      <div class="info" id="playerTwoDiv"></div>
+    </div>
+    <div class="footer">
+      <p>Copyright &copy; Paul Göckede</p>
+    </div>
+    <div id="overlay"><div id="overlay-text"></div></div>
   </body>
 </html>
