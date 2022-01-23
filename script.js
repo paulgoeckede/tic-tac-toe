@@ -65,7 +65,11 @@ const gameBoard = (() => {
         _turns = 0;
     };
 
-    return {changeArray, checkWinCondition, checkDraw, clearArray};
+    const getGame = () => {
+        return _game;
+    };
+
+    return {changeArray, checkWinCondition, checkDraw, clearArray, getGame};
 })();
 
 //functionality for displaying the current game on the screen
@@ -80,7 +84,10 @@ const displayController = (() => {
     let _gameRunning = false;
     let _playerOneName = null;
     let _playerTwoName = null;
+    let _currentModeComputer = false;
+    let _gameOver = false;
 
+    //adds event listeners/functionality to all 9 fields
     const _playGame = () => {
         _fieldsArray.forEach(function(field){
             field.addEventListener("click", (e) => {
@@ -91,61 +98,99 @@ const displayController = (() => {
                             field.innerHTML = "";
                             _endGame();
                             _displayWinMsg(`${_playerOneName} won!`);
+                            _gameOver = true;
                         } else if(gameBoard.checkDraw()){
                             field.innerHTML = "";
                             _endGame();
                             _displayWinMsg("It's a draw!");
+                            _gameOver = true;
                         } else{
                             field.innerHTML = playerOne.playerInput;
                         }
                         playerOneDiv.classList.toggle("turn");
                         playerTwoDiv.classList.toggle("turn");
+                        if(_currentModeComputer && !_gameOver){
+                            changeField(_fieldsArray[computerAI.makeRandomMove()], playerTwo.playerInput);
+                            _turn = 0;
+                            if(gameBoard.checkWinCondition(playerTwo.playerInput)){
+                                _endGame();
+                                _displayWinMsg(`Computer won!`);
+                            } else if(gameBoard.checkDraw()){
+                                _endGame();
+                                _displayWinMsg("It's a draw!");
+                            }
+                        }
                     }
                 }else{ //player 2s turn
-                    if(playerTwo.makeMove(e.target.dataset.field)){ //condition to check if selected field is empty or not
-                        _turn=0;
-                        if(gameBoard.checkWinCondition(playerTwo.playerInput)){
-                            _endGame();
-                            _displayWinMsg(`${_playerTwoName} won!`);
-                        } else if(gameBoard.checkDraw()){
-                            _endGame();
-                            _displayWinMsg("It's a draw!");
-                        } else{
-                            field.innerHTML = playerTwo.playerInput;
+                    if(!_currentModeComputer){
+                        if(playerTwo.makeMove(e.target.dataset.field)){ //condition to check if selected field is empty or not
+                            _turn=0;
+                            if(gameBoard.checkWinCondition(playerTwo.playerInput)){
+                                _endGame();
+                                _displayWinMsg(`${_playerTwoName} won!`);
+                            } else if(gameBoard.checkDraw()){
+                                _endGame();
+                                _displayWinMsg("It's a draw!");
+                            } else{
+                                field.innerHTML = playerTwo.playerInput;
+                            }
+                            playerOneDiv.classList.toggle("turn");
+                            playerTwoDiv.classList.toggle("turn");
                         }
-                        playerOneDiv.classList.toggle("turn");
-                        playerTwoDiv.classList.toggle("turn");
                     }
                 }
             });
         });
     };
 
+    const changeField = (field, input) => {
+        field.innerHTML = input;
+        gameBoard.changeArray(input, field.dataset.field);
+    }
+
     const _playButtonFunc = () => {
         _playButton.addEventListener("click", () => {
-            if(document.getElementById("playerOne").value.length !== 0 && document.getElementById("playerTwo").value.length!==0){
-                _playerOneName = document.getElementById("playerOne").value;
-                _playerTwoName = document.getElementById("playerTwo").value;
-                playerOneDiv.innerHTML = `<h3>${_playerOneName}:</h3><p>X</p>`;
-                playerTwoDiv.innerHTML = `<h3>${_playerTwoName}:</h3><p>O</p>`;
-                playerOneDiv.classList.add("turn");
-                playerTwoDiv.classList.remove("turn");
-                document.getElementById("playerOne").value = "";
-                document.getElementById("playerTwo").value = "";
-                _endGame();
-                document.getElementById("overlay").style.display = "none";
-                if(!_gameRunning){
-                    _playGame();
-                    _gameRunning = true;
+            if(!_currentModeComputer){
+                if(document.getElementById("playerOne").value.length !== 0 && document.getElementById("playerTwo").value.length!==0){
+                    _playerOneName = document.getElementById("playerOne").value;
+                    _playerTwoName = document.getElementById("playerTwo").value;
+                    playerOneDiv.innerHTML = `<h3>${_playerOneName}:</h3><p>X</p>`;
+                    playerTwoDiv.innerHTML = `<h3>${_playerTwoName}:</h3><p>O</p>`;
+                    playerOneDiv.classList.add("turn");
+                    playerTwoDiv.classList.remove("turn");
+                    document.getElementById("playerOne").value = "";
+                    document.getElementById("playerTwo").value = "";
+                    _endGame();
+                    document.getElementById("overlay").style.display = "none";
+                    if(!_gameRunning){
+                        _playGame();
+                        _gameRunning = true;
+                    }
+                } else if(_playerOneName !== null && _playerTwoName !== null){
+                    playerOneDiv.classList.add("turn");
+                    playerTwoDiv.classList.remove("turn");
+                    _endGame();
+                    document.getElementById("overlay").style.display = "none";
+                } else {
+                    alert("Please enter both players names!");
                 }
-            } else if(_playerOneName !== null && _playerTwoName !== null){
-                playerOneDiv.classList.add("turn");
-                playerTwoDiv.classList.remove("turn");
-                _endGame();
-                document.getElementById("overlay").style.display = "none";
-            } else {
-                alert("Please enter both players names!");
+            } else{
+                if(document.getElementById("playerOne").value.length !== 0){
+                    _playerOneName = document.getElementById("playerOne").value;
+                    _endGame();
+                    if(!_gameRunning){
+                        _playGame();
+                        _gameRunning = true;
+                    }
+                    document.getElementById("overlay").style.display = "none";
+                }  else if(_playerOneName !== null){
+                    _endGame();
+                    document.getElementById("overlay").style.display = "none";
+                } else{
+                    alert("Please enter your name!");
+                }
             }
+            _gameOver = false;
         });
     };
 
@@ -163,7 +208,66 @@ const displayController = (() => {
         document.getElementById("overlay-text").innerHTML = `${winMsg}`;
     };
 
+    const _toggleComputerMode = () => {
+        const _inputForm = document.querySelector(".inputForm");
+        const _playerTwoInput = document.querySelector("#playerTwo");
+        const orSpan = document.querySelector("#orSpan");
+        const modeSwitchBtn = document.querySelector("#modeSwitch");
+
+        if(_currentModeComputer){
+            const dropdown = document.querySelector("select");
+            _inputForm.removeChild(dropdown);
+            const newInput = document.createElement("input");
+            newInput.setAttribute("placeholder", "Player Two");
+            newInput.setAttribute("id", "playerTwo");
+            _inputForm.insertBefore(newInput, orSpan);
+            modeSwitchBtn.innerHTML = "Play against Computer";
+            _currentModeComputer = false;
+        }else{
+            _inputForm.removeChild(_playerTwoInput); //removes the input Player Two name field
+            const dropdown = document.createElement("select");
+            dropdown.setAttribute("name", "Difficulty");
+            const easyOption = document.createElement("option");
+            const hardOption = document.createElement("option");
+            easyOption.setAttribute("value", "easy");
+            hardOption.setAttribute("value", "hard");
+            easyOption.innerHTML = "Easy";
+            hardOption.innerHTML = "Hard";
+            dropdown.appendChild(easyOption);
+            dropdown.appendChild(hardOption);
+            _inputForm.insertBefore(dropdown, orSpan);
+            modeSwitchBtn.innerHTML = "Two Player Mode";
+            _currentModeComputer = true;
+        }
+    }
+
+    const _computerButton = () => {
+        const _modeSwitchBtn = document.querySelector("#modeSwitch");
+        _modeSwitchBtn.addEventListener("click", () => {
+            _toggleComputerMode();
+        });
+    }
+
     _playButtonFunc();
+    _computerButton();
+})();
+
+const computerAI = (() => {
+    const makeRandomMove = () => {
+        const _currentGame = gameBoard.getGame();
+        const _freeArray = [];
+
+        for(let i = 0; i<_currentGame.length; i++){
+            if(!isNaN(_currentGame[i])){
+                _freeArray.push(_currentGame[i]);
+            }
+        }
+        const _randomField = Math.floor(Math.random() * _freeArray.length);
+        return _freeArray[_randomField];
+    }
+
+    return {makeRandomMove};
+
 })();
 
 const playerOne = player("x");

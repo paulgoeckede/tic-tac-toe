@@ -21,7 +21,8 @@ h1 {
 }
 
 #playerOne,
-#playerTwo {
+#playerTwo,
+select {
   width: 20%;
   height: 30px;
   font-size: 16px;
