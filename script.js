@@ -35,15 +35,15 @@ const gameBoard = (() => {
     };
 
     //checks if a player has won
-    const checkWinCondition = (input) => {
-        if((_game[0] === input && _game[1] === input && _game[2] === input) ||
-           (_game[3] === input && _game[4] === input && _game[5] === input) ||
-           (_game[6] === input && _game[7] === input && _game[8] === input) ||
-           (_game[0] === input && _game[3] === input && _game[6] === input) ||
-           (_game[1] === input && _game[4] === input && _game[7] === input) ||
-           (_game[2] === input && _game[5] === input && _game[8] === input) ||
-           (_game[0] === input && _game[4] === input && _game[8] === input) ||
-           (_game[2] === input && _game[4] === input && _game[6] === input) ){
+    const checkWinCondition = (input, state) => {
+        if((state[0] === input && state[1] === input && state[2] === input) ||
+           (state[3] === input && state[4] === input && state[5] === input) ||
+           (state[6] === input && state[7] === input && state[8] === input) ||
+           (state[0] === input && state[3] === input && state[6] === input) ||
+           (state[1] === input && state[4] === input && state[7] === input) ||
+           (state[2] === input && state[5] === input && state[8] === input) ||
+           (state[0] === input && state[4] === input && state[8] === input) ||
+           (state[2] === input && state[4] === input && state[6] === input) ){
                return true;
            }
         return false;
@@ -94,7 +94,7 @@ const displayController = (() => {
                 if(_turn%2===0){ //if this is true, then its player 1s turn
                     if(playerOne.makeMove(e.target.dataset.field)){ //condition to check if selected field is empty or not
                         _turn++;
-                        if(gameBoard.checkWinCondition(playerOne.playerInput)){
+                        if(gameBoard.checkWinCondition(playerOne.playerInput, gameBoard.getGame())){
                             field.innerHTML = "";
                             _endGame();
                             _displayWinMsg(`${_playerOneName} won!`);
@@ -109,13 +109,24 @@ const displayController = (() => {
                         }
                         playerOneDiv.classList.toggle("turn");
                         playerTwoDiv.classList.toggle("turn");
-                        if(_currentModeComputer && !_gameOver){
+                        if(_currentModeComputer && !_gameOver && document.querySelector("select").value === "easy"){
                             changeField(_fieldsArray[computerAI.makeRandomMove()], playerTwo.playerInput);
                             _turn = 0;
-                            if(gameBoard.checkWinCondition(playerTwo.playerInput)){
+                            if(gameBoard.checkWinCondition(playerTwo.playerInput, gameBoard.getGame())){
                                 _endGame();
                                 _displayWinMsg(`Computer won!`);
                             } else if(gameBoard.checkDraw()){
+                                _endGame();
+                                _displayWinMsg("It's a draw!");
+                            }
+                        } else if (_currentModeComputer && !_gameOver && document.querySelector("select").value === "hard"){
+                            const _minMaxField = computerAI.minMax(true, gameBoard.getGame()).index;
+                            changeField(_fieldsArray[_minMaxField], playerTwo.playerInput);
+                            _turn = 0;
+                            if(gameBoard.checkWinCondition(playerTwo.playerInput, gameBoard.getGame())){
+                                _endGame();
+                                _displayWinMsg("Computer won!");
+                            }else if(gameBoard.checkDraw()){
                                 _endGame();
                                 _displayWinMsg("It's a draw!");
                             }
@@ -125,7 +136,7 @@ const displayController = (() => {
                     if(!_currentModeComputer){
                         if(playerTwo.makeMove(e.target.dataset.field)){ //condition to check if selected field is empty or not
                             _turn=0;
-                            if(gameBoard.checkWinCondition(playerTwo.playerInput)){
+                            if(gameBoard.checkWinCondition(playerTwo.playerInput, gameBoard.getGame())){
                                 _endGame();
                                 _displayWinMsg(`${_playerTwoName} won!`);
                             } else if(gameBoard.checkDraw()){
@@ -214,6 +225,11 @@ const displayController = (() => {
         const orSpan = document.querySelector("#orSpan");
         const modeSwitchBtn = document.querySelector("#modeSwitch");
 
+        _playerOneName = null;
+        _playerTwoName = null;
+        playerOneDiv.innerHTML = "";
+        playerTwoDiv.innerHTML = "";
+
         if(_currentModeComputer){
             const dropdown = document.querySelector("select");
             _inputForm.removeChild(dropdown);
@@ -253,6 +269,8 @@ const displayController = (() => {
 })();
 
 const computerAI = (() => {
+    let _lastChanged; //for the minmax function
+
     const makeRandomMove = () => {
         const _currentGame = gameBoard.getGame();
         const _freeArray = [];
@@ -264,9 +282,86 @@ const computerAI = (() => {
         }
         const _randomField = Math.floor(Math.random() * _freeArray.length);
         return _freeArray[_randomField];
-    }
+    };
 
-    return {makeRandomMove};
+    const minMax = (isMaxPlayer, state) => {
+        const _freeArray = [];
+        //tracks all free/available spaces on the board onto _freeArray
+        for(let i = 0; i<state.length; i++){
+            if(!isNaN(state[i])){
+                _freeArray.push(state[i]);
+            }
+        }
+
+        if(gameBoard.checkWinCondition(playerTwo.playerInput, state)){
+            return {score: 10};
+        } else if (gameBoard.checkWinCondition(playerOne.playerInput, state)){
+            return {score: -10};
+        } else if (_freeArray.length === 0){
+            return {score: 0};
+        }
+
+        // let _minMaxValue; //declare variable that keeps track of the minmax score/value
+        const _moveArray = [];
+
+        for (let i = 0; i<_freeArray.length; i++){
+            let move = {};
+            move.index = state[_freeArray[i]];
+            
+            if (isMaxPlayer) {
+                state[_freeArray[i]] = playerTwo.playerInput;
+                let result = minMax(false, state);
+                move.score = result.score;
+            } else {
+                state[_freeArray[i]] = playerOne.playerInput;
+                let result = minMax(true, state);
+                move.score = result.score;
+            }
+
+            state[_freeArray[i]] = move.index;
+            _moveArray.push(move);
+        }
+
+        let _bestMove;
+
+
+        if(isMaxPlayer){
+            let _bestMaxScore = -1000;
+            for (let i = 0; i<_moveArray.length; i++){
+                if(_moveArray[i].score > _bestMaxScore){
+                    _bestMaxScore = _moveArray[i].score;
+                    _bestMove = i;
+                }
+            }
+        } else {
+            let _bestMinScore = 1000;
+            for (let i = 0; i<_moveArray.length; i++){
+                if(_moveArray[i].score < _bestMinScore){
+                    _bestMinScore = _moveArray[i].score;
+                    _bestMove = i;
+                }
+            }
+        }
+        return _moveArray[_bestMove];
+        /* 
+        - parameters: depth, min or max Player, current state
+        - check if it is the maximizing player (AI) or the minimizing player (user)
+        - loop through all possible move variations
+        - for each game variation
+            - check if necessary depth is reached
+                - if yes, return object with field and value 0
+                - if no, continue
+            - check if the game has finished
+                - if yes, update the minmax variable accordingly
+                - return minmax variable minus/plus depth depending on the player and field as object
+                - if no continue
+            - call minmax function again (recursion) with the other player and depth -1
+        - loop through array of objects (should be all possible next moves) and pick the one with the best score -> if current player max (AI), pick the one with the highest score, if current player min (user) pick the one with the lowest score
+        - return object with field and score.
+        */
+    };
+
+    return {makeRandomMove, minMax};
 
 })();
 
