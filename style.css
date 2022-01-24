@@ -108,6 +108,7 @@ select {
   font-weight: bold;
   justify-content: center;
   align-items: center;
+  transition: all 0.1s;
 }
 
 .footer {
